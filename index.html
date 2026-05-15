@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>LaunchPad — AI Job Application Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0b0d14;--surface:#13161f;--panel:#1a1e2a;--border:#252a38;
+  --accent:#5b7fff;--a2:#ff6b6b;--a3:#40e0a0;--a4:#ffb443;
+  --text:#e8eaf2;--muted:#6b7280;--dim:#2e3447;
+  --r:10px;--rl:18px;--fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100vh}
+.shell{display:grid;grid-template-columns:240px 1fr;grid-template-rows:60px 1fr;min-height:100vh}
+/* TOPBAR */
+.topbar{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200}
+.logo{font-family:var(--fh);font-size:19px;font-weight:800;letter-spacing:-.5px;display:flex;align-items:center;gap:9px}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.logo span{color:var(--accent)}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.pill{background:rgba(91,127,255,.15);color:var(--accent);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid rgba(91,127,255,.25)}
+.odot{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:all .3s}
+.odot.ok{background:var(--a3);box-shadow:0 0 5px var(--a3)}
+.odot.fail{background:var(--a2)}
+/* SIDEBAR */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:16px 0;overflow-y:auto}
+.sb-sec{padding:0 10px;margin-bottom:20px}
+.sb-lbl{font-size:10px;font-weight:700;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;padding:0 8px;margin-bottom:5px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--r);cursor:pointer;font-size:13px;color:var(--muted);transition:all .15s;user-select:none;position:relative}
+.nav-item:hover{background:var(--panel);color:var(--text)}
+.nav-item.active{background:rgba(91,127,255,.12);color:var(--accent);font-weight:500}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--accent);border-radius:0 3px 3px 0}
+.ni{font-size:15px;width:20px;text-align:center}
+.sdiv{height:1px;background:var(--border);margin:8px 18px 14px}
+.sb-stats{margin:0 10px;background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:13px}
+.sb-st{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.sb-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
+.sb-k{font-size:11px;color:var(--muted)}
+.sb-v{font-size:13px;font-weight:600}
+.sb-v.hi{color:var(--a3)}
+/* MAIN */
+.main{overflow-y:auto;padding:28px}
+.page{display:none}
+.page.active{display:block;animation:fu .22s ease}
+@keyframes fu{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+/* COMPONENTS */
+.ph-title{font-family:var(--fh);font-size:26px;font-weight:800;letter-spacing:-.5px;margin-bottom:5px}
+.ph-sub{font-size:13px;color:var(--muted);margin-bottom:26px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:22px}
+.card-title{font-family:var(--fh);font-size:15px;font-weight:700;margin-bottom:14px}
+.hero{background:linear-gradient(135deg,rgba(91,127,255,.13),rgba(64,224,160,.07));border:1px solid rgba(91,127,255,.18);border-radius:var(--rl);padding:28px;margin-bottom:26px;overflow:hidden;position:relative}
+.hero::before{content:'';position:absolute;top:-50px;right:-50px;width:180px;height:180px;background:radial-gradient(circle,rgba(91,127,255,.15),transparent 70%);pointer-events:none}
+.hero-title{font-family:var(--fh);font-size:21px;font-weight:800;margin-bottom:7px}
+.hero-sub{font-size:13px;color:var(--muted);max-width:480px;line-height:1.6}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+/* Steps */
+.steps-row{display:flex;align-items:center}
+.sd2{width:30px;height:30px;border-radius:50%;background:var(--panel);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--muted);font-family:var(--fh);flex-shrink:0;transition:all .3s}
+.sd2.done{background:rgba(64,224,160,.12);border-color:var(--a3);color:var(--a3)}
+.sd2.cur{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 0 4px rgba(91,127,255,.18)}
+.sline{flex:1;height:2px;background:var(--border);transition:background .3s}
+.sline.done{background:var(--a3)}
+.slbls{display:flex;justify-content:space-between;margin-top:7px}
+.slbl{font-size:10px;color:var(--muted);text-align:center;width:75px}
+.slbl.done{color:var(--a3)}.slbl.cur{color:var(--accent)}
+/* Upload */
+.uz{border:2px dashed var(--border);border-radius:var(--rl);padding:36px 20px;text-align:center;cursor:pointer;transition:all .18s;background:var(--panel);position:relative}
+.uz:hover,.uz.drag{border-color:var(--accent);background:rgba(91,127,255,.05)}
+.uz.has-file{border-color:var(--a3);background:rgba(64,224,160,.05)}
+.uz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.uicon{font-size:32px;margin-bottom:10px;display:block}
+.utxt{font-size:13px;color:var(--muted);line-height:1.6}
+.utxt strong{color:var(--text)}
+.fbadge{display:flex;align-items:center;gap:9px;background:rgba(64,224,160,.08);border:1px solid rgba(64,224,160,.22);border-radius:var(--r);padding:9px 13px;margin-top:10px}
+/* Forms */
+label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;letter-spacing:.3px}
+input,textarea,select{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:9px 13px;font-family:var(--fb);font-size:13px;color:var(--text);outline:none;transition:border-color .18s;appearance:none}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,127,255,.1)}
+textarea{resize:vertical;line-height:1.6;min-height:150px}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:34px;cursor:pointer}
+.fg{margin-bottom:14px}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 18px;border-radius:var(--r);font-family:var(--fb);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;user-select:none;white-space:nowrap}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-p{background:var(--accent);color:#fff}
+.btn-p:hover:not(:disabled){background:#4a6eff;transform:translateY(-1px);box-shadow:0 4px 18px rgba(91,127,255,.3)}
+.btn-g{background:var(--panel);color:var(--text);border:1px solid var(--border)}
+.btn-g:hover:not(:disabled){background:var(--dim)}
+.btn-d{background:rgba(255,107,107,.1);color:var(--a2);border:1px solid rgba(255,107,107,.22)}
+.btn-s{background:rgba(64,224,160,.1);color:var(--a3);border:1px solid rgba(64,224,160,.22)}
+.btn-lg{padding:13px 26px;font-size:14px;font-weight:600;border-radius:var(--rl)}
+.btn-full{width:100%}
+/* Progress */
+.pw{background:var(--panel);border-radius:99px;height:7px;overflow:hidden;border:1px solid var(--border)}
+.pf{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--a3));transition:width .4s ease}
+.pl{display:flex;justify-content:space-between;font-size:11px;margin-bottom:7px}
+.pl span{color:var(--muted)}.pl strong{color:var(--accent)}
+/* Metric */
+.metric{background:var(--panel);border:1px solid var(--border);border-radius:var(--rl);padding:18px;display:flex;flex-direction:column;gap:5px}
+.ml{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase}
+.mv{font-family:var(--fh);font-size:26px;font-weight:800;letter-spacing:-1px;line-height:1}
+.mv.gn{color:var(--a3)}.mv.bl{color:var(--accent)}.mv.rd{color:var(--a2)}.mv.yw{color:var(--a4)}
+/* Alert */
+.alert{border-radius:var(--r);padding:11px 14px;font-size:12.5px;line-height:1.5;display:flex;align-items:flex-start;gap:9px}
+.ai{background:rgba(91,127,255,.09);border:1px solid rgba(91,127,255,.18);color:#a5b8ff}
+.as{background:rgba(64,224,160,.09);border:1px solid rgba(64,224,160,.18);color:#86efcd}
+.aw{background:rgba(255,180,67,.09);border:1px solid rgba(255,180,67,.18);color:#ffd080}
+.ae{background:rgba(255,107,107,.09);border:1px solid rgba(255,107,107,.18);color:#ffaaaa}
+.aicon{font-size:14px;flex-shrink:0;margin-top:1px}
+/* Tabs */
+.tabs{display:flex;gap:3px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:9px 16px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+/* Badge */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700}
+.bg{background:rgba(91,127,255,.14);color:var(--accent)}
+.bgg{background:rgba(64,224,160,.14);color:var(--a3)}
+.bgr{background:rgba(255,107,107,.14);color:var(--a2)}
+/* Table */
+.tw{overflow-x:auto;border-radius:var(--r);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{background:var(--panel);padding:9px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--panel)}
+/* Toggle */
+.trow{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)}
+.trow:last-child{border-bottom:none}
+.toggle{position:relative;width:38px;height:21px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.tt{position:absolute;inset:0;background:var(--dim);border-radius:99px;cursor:pointer;transition:background .18s}
+.toggle input:checked~.tt{background:var(--accent)}
+.tt::after{content:'';position:absolute;left:3px;top:3px;width:15px;height:15px;background:#fff;border-radius:50%;transition:transform .18s}
+.toggle input:checked~.tt::after{transform:translateX(17px)}
+/* Page selector */
+.pgsel{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.pgopt{border:2px solid var(--border);border-radius:var(--r);padding:10px 8px;text-align:center;cursor:pointer;transition:all .15s;background:var(--panel);user-select:none}
+.pgopt:hover{border-color:var(--dim);background:var(--surface)}
+.pgopt.sel{border-color:var(--accent);background:rgba(91,127,255,.1);box-shadow:0 0 0 3px rgba(91,127,255,.15)}
+.pgopt-icon{font-size:20px;display:block;margin-bottom:4px}
+.pgopt-label{font-size:12px;font-weight:700;color:var(--text)}
+.pgopt-sub{font-size:10px;color:var(--muted);margin-top:2px}
+/* Tone */
+.tone-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.to{border:2px solid var(--border);border-radius:var(--r);padding:11px 8px;text-align:center;cursor:pointer;transition:all .15s;background:var(--panel)}
+.to:hover{border-color:var(--dim);background:var(--surface)}
+.to.sel{border-color:var(--accent);background:rgba(91,127,255,.09)}
+.te{font-size:18px;display:block;margin-bottom:5px}
+.tn{font-size:11px;font-weight:700;color:var(--text)}
+.td2{font-size:10px;color:var(--muted);margin-top:2px}
+/* Spinner */
+.spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:rot .65s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+/* Gen steps */
+.gsteps{list-style:none}
+.gstep{display:flex;align-items:center;gap:11px;padding:9px 0;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border)}
+.gstep:last-child{border-bottom:none}
+.gstep.done{color:var(--text)}.gstep.act{color:var(--accent)}
+.gd{width:20px;height:20px;border-radius:50%;background:var(--panel);border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px}
+.gd.done{background:rgba(64,224,160,.12);border-color:var(--a3);color:var(--a3)}
+.gd.act{border:none}
+/* Ring */
+.ring{position:relative;width:110px;height:110px;margin:0 auto}
+.ring svg{transform:rotate(-90deg)}
+.ring-txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.ring-num{font-family:var(--fh);font-size:22px;font-weight:800}
+.ring-lbl{font-size:9px;color:var(--muted);letter-spacing:.5px}
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600}
+.cok{background:rgba(64,224,160,.1);border:1px solid rgba(64,224,160,.28);color:var(--a3)}
+.cno{background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.28);color:var(--a2)}
+/* Bot log */
+.blog{background:#060810;border:1px solid var(--border);border-radius:var(--r);padding:14px;font-family:'Courier New',monospace;font-size:11.5px;line-height:1.7;color:#b0c4de;height:260px;overflow-y:auto}
+.lok{color:var(--a3)}.lw{color:var(--a4)}.le{color:var(--a2)}.li{color:var(--accent)}
+/* Expander */
+.exp{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.exp-head{padding:11px 15px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:13px;font-weight:500;background:var(--panel);user-select:none}
+.exp-head:hover{background:var(--dim)}
+.exp-arr{transition:transform .18s;font-size:11px}
+.exp.open .exp-arr{transform:rotate(180deg)}
+.exp-body{display:none;padding:14px;background:var(--surface);font-size:12.5px;line-height:1.6;color:var(--muted)}
+.exp.open .exp-body{display:block}
+/* Download */
+.dlg{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.dlb{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:15px;text-align:center;cursor:pointer;transition:all .18s;font-size:12px;color:var(--text)}
+.dlb:hover{border-color:var(--accent);background:rgba(91,127,255,.07);transform:translateY(-2px)}
+.dlbi{font-size:22px;display:block;margin-bottom:7px}
+.dlbn{font-weight:700;font-size:13px}
+.dlbt{font-size:10px;color:var(--muted);margin-top:2px}
+/* Chart */
+.cw{position:relative;height:240px}
+/* Settings */
+.sset{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:22px;margin-bottom:18px}
+.sset-t{font-family:var(--fh);font-size:14px;font-weight:700;margin-bottom:16px;padding-bottom:13px;border-bottom:1px solid var(--border)}
+.orow{display:flex;align-items:center;gap:9px;padding:10px 14px;border-radius:var(--r);background:var(--panel);border:1px solid var(--border);margin-bottom:12px}
+/* Utils */
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt18{margin-top:18px}.mt20{margin-top:20px}.mt22{margin-top:22px}
+.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}.mb20{margin-bottom:20px}
+.fc{display:flex;align-items:center}.g8{gap:8px}.g12{gap:12px}
+.muted{color:var(--muted)}.sm{font-size:11px}.secth{font-family:var(--fh);font-size:14px;font-weight:700}
+.hidden{display:none!important}
+/* Loading overlay */
+#lov{position:fixed;inset:0;background:rgba(11,13,20,.85);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;backdrop-filter:blur(4px)}
+#lov.hidden{display:none!important}
+.lspin{width:40px;height:40px;border:3px solid rgba(91,127,255,.2);border-top-color:var(--accent);border-radius:50%;animation:rot .7s linear infinite}
+/* Toast */
+#tc{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--surface);border-radius:var(--r);padding:11px 16px;font-size:12.5px;box-shadow:0 4px 20px rgba(0,0,0,.5);border-left:3px solid var(--accent);color:var(--accent)}
+.toast.success{border-color:var(--a3);color:var(--a3)}
+.toast.error{border-color:var(--a2);color:var(--a2)}
+.toast.warn{border-color:var(--a4);color:var(--a4)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--dim);border-radius:3px}
+@media(max-width:700px){.shell{grid-template-columns:1fr}.sidebar{display:none}.g2,.g4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="lov" class="hidden">
+  <div class="lspin"></div>
+  <div style="font-family:var(--fh);font-size:15px;font-weight:700;color:var(--accent)" id="lt">Processing…</div>
+  <div style="font-size:12px;color:var(--muted)" id="ls">Please wait</div>
+</div>
+<div id="tc"></div>
+
+<div class="shell">
+<header class="topbar">
+  <div class="logo"><div class="logo-icon">🚀</div>Launch<span>Pad</span></div>
+  <span class="pill">AI-POWERED · LOCAL</span>
+  <div class="tb-right">
+    <span style="font-size:12px;color:var(--muted)" id="tb-model">Ollama · llama3.2</span>
+    <div class="fc g8"><div class="odot" id="odot"></div><span class="sm muted" id="otxt">Checking…</span></div>
+  </div>
+</header>
+
+<aside class="sidebar">
+  <div class="sb-sec">
+    <div class="sb-lbl">Main</div>
+    <div class="nav-item active" data-page="home"><span class="ni">🏠</span>Home</div>
+    <div class="nav-item" data-page="batch"><span class="ni">📦</span>Batch Processing</div>
+    <div class="nav-item" data-page="email"><span class="ni">📧</span>Email Automation</div>
+    <div class="nav-item" data-page="ats"><span class="ni">📊</span>ATS Analyzer</div>
+    <div class="nav-item" data-page="linkedin"><span class="ni">🤖</span>LinkedIn Bot</div>
+  </div>
+  <div class="sdiv"></div>
+  <div class="sb-sec">
+    <div class="sb-lbl">Insights</div>
+    <div class="nav-item" data-page="dashboard"><span class="ni">📈</span>Dashboard</div>
+    <div class="nav-item" data-page="analytics"><span class="ni">📉</span>Analytics</div>
+  </div>
+  <div class="sdiv"></div>
+  <div class="sb-sec">
+    <div class="sb-lbl">System</div>
+    <div class="nav-item" data-page="settings"><span class="ni">⚙️</span>Settings</div>
+  </div>
+  <div class="sdiv"></div>
+  <div class="sb-stats">
+    <div class="sb-st">Quick Stats</div>
+    <div class="sb-row"><span class="sb-k">Applications</span><span class="sb-v" id="sb-apps">0</span></div>
+    <div class="sb-row"><span class="sb-k">Best Score</span><span class="sb-v hi" id="sb-best">—</span></div>
+    <div class="sb-row"><span class="sb-k">Avg Score</span><span class="sb-v" id="sb-avg">—</span></div>
+  </div>
+</aside>
+
+<main class="main">
+
+<!-- HOME -->
+<div id="page-home" class="page active">
+  <div class="hero">
+    <div class="hero-title">AI Job Application Generator ✨</div>
+    <div class="hero-sub">Upload your resume, paste a job description, get a tailored resume + cover letter — powered by Ollama, 100% local &amp; free.</div>
+  </div>
+  <div class="steps-row">
+    <div class="sd2 cur" id="sd1">1</div><div class="sline" id="sl1"></div>
+    <div class="sd2" id="sd2">2</div><div class="sline" id="sl2"></div>
+    <div class="sd2" id="sd3">3</div><div class="sline" id="sl3"></div>
+    <div class="sd2" id="sd4">✓</div>
+  </div>
+  <div class="slbls">
+    <span class="slbl cur" id="slab1">Upload</span>
+    <span class="slbl" id="slab2">Job Desc</span>
+    <span class="slbl" id="slab3">Generate</span>
+    <span class="slbl" id="slab4">Download</span>
+  </div>
+
+  <div class="card mt20" id="s1-card">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:18px">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:12px;font-weight:800;color:#fff" id="s1-num">1</div>
+      <div style="font-family:var(--fh);font-size:16px;font-weight:700">Upload Your Resume</div>
+    </div>
+    <div class="g2">
+      <div>
+        <div class="uz" id="uz"><input type="file" id="ri" accept=".pdf,.docx,.txt"/>
+          <span class="uicon">📄</span>
+          <div class="utxt"><strong>Click to upload</strong> or drag &amp; drop<br>PDF, DOCX, or TXT · Max 10 MB</div>
+        </div>
+        <div id="fbadge" class="fbadge hidden"><span style="font-size:18px">✅</span>
+          <div><div style="font-size:12px;font-weight:500" id="fb-name">—</div><div style="font-size:10px;color:var(--muted)" id="fb-meta">—</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="alert ai mb12"><span class="aicon">🔒</span>Processed 100% locally via Ollama. Nothing leaves your machine.</div>
+        <button class="btn btn-p btn-full btn-lg" id="parse-btn" disabled>
+          <span class="spin hidden" id="pspin"></span> 🔄 Parse Resume
+        </button>
+        <div id="parse-res" class="hidden mt12">
+          <div class="alert as"><span class="aicon">🎉</span>
+            <div><strong>Resume parsed!</strong><br><span id="pr-name">—</span> · <span id="pr-jobs">0</span> · <span id="pr-skills">0</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt18" id="s2-card" style="opacity:.4;pointer-events:none">
+    <div style="display:flex;align-items:center;gap:11px;margin-bottom:18px">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:12px;font-weight:800;color:#fff">2</div>
+      <div style="font-family:var(--fh);font-size:16px;font-weight:700">Paste Job Description</div>
+    </div>
+    <div class="g2">
+      <div class="fg">
+        <label>Full Job Description *</label>
+        <textarea id="jd" rows="10" placeholder="Paste the complete job posting here…"></textarea>
+      </div>
+      <div>
+        <label>Cover Letter Tone</label>
+        <div class="tone-grid mt8">
+          <div class="to sel" data-tone="professional"><span class="te">🎩</span><div class="tn">Professional</div><div class="td2">Formal</div></div>
+          <div class="to" data-tone="enthusiastic"><span class="te">🌟</span><div class="tn">Enthusiastic</div><div class="td2">Energetic</div></div>
+          <div class="to" data-tone="concise"><span class="te">⚡</span><div class="tn">Concise</div><div class="td2">Brief</div></div>
+          <div class="to" data-tone="creative"><span class="te">🎨</span><div class="tn">Creative</div><div class="td2">Unique</div></div>
+        </div>
+        <label style="display:block;margin-top:16px;margin-bottom:0">Resume Length</label>
+        <div class="pgsel">
+          <div class="pgopt" id="pg1" data-pages="1" onclick="selectPages(1)">
+            <span class="pgopt-icon">📄</span>
+            <div class="pgopt-label">1 Page</div>
+            <div class="pgopt-sub">ATS-friendly · concise</div>
+          </div>
+          <div class="pgopt sel" id="pg2" data-pages="2" onclick="selectPages(2)">
+            <span class="pgopt-icon">📋</span>
+            <div class="pgopt-label">2 Pages</div>
+            <div class="pgopt-sub">Full detail · complete</div>
+          </div>
+        </div>
+        <button class="btn btn-p btn-full btn-lg mt20" id="gen-btn" disabled>🚀 Generate Complete Application</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt18 hidden" id="gen-card">
+    <div class="card-title">🤖 AI is Working Its Magic…</div>
+    <ul class="gsteps">
+      <li class="gstep" id="gs1"><div class="gd" id="gd1"></div>Analyzing job description</li>
+      <li class="gstep" id="gs2"><div class="gd" id="gd2"></div>Calculating match score</li>
+      <li class="gstep" id="gs3"><div class="gd" id="gd3"></div>Tailoring resume with AI</li>
+      <li class="gstep" id="gs4"><div class="gd" id="gd4"></div>Writing cover letter</li>
+      <li class="gstep" id="gs5"><div class="gd" id="gd5"></div>Packaging application</li>
+    </ul>
+    <div class="mt12">
+      <div class="pl"><span id="gtxt">Starting…</span><strong id="gpct">0%</strong></div>
+      <div class="pw"><div class="pf" id="gprog" style="width:0%"></div></div>
+    </div>
+    <div id="gerr" class="alert ae mt12 hidden"><span class="aicon">❌</span><span id="gerrt"></span></div>
+  </div>
+
+  <div class="card mt18 hidden" id="res-card">
+    <div class="card-title">🎉 Application Package Ready!</div>
+    <div class="g4 mb20">
+      <div class="metric"><div class="ml">Before</div><div class="mv" id="r-b">—</div></div>
+      <div class="metric"><div class="ml">After</div><div class="mv gn" id="r-a">—</div></div>
+      <div class="metric"><div class="ml">Improvement</div><div class="mv bl" id="r-i">—</div></div>
+      <div class="metric"><div class="ml">Grade</div><div class="mv yw" id="r-g">—</div></div>
+    </div>
+    <div class="fc g12 mb20" style="justify-content:center">
+      <div class="ring">
+        <svg viewBox="0 0 110 110" width="110" height="110">
+          <circle cx="55" cy="55" r="46" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="11"/>
+          <circle cx="55" cy="55" r="46" fill="none" stroke="url(#gr1)" stroke-width="11" stroke-dasharray="289" stroke-dashoffset="289" stroke-linecap="round" id="sarc"/>
+          <defs><linearGradient id="gr1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#5b7fff"/><stop offset="100%" stop-color="#40e0a0"/></linearGradient></defs>
+        </svg>
+        <div class="ring-txt"><div class="ring-num" id="rnum">0</div><div class="ring-lbl">MATCH %</div></div>
+      </div>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-tab="tr">📄 Resume</div>
+      <div class="tab" data-tab="tl">✉️ Cover Letter</div>
+      <div class="tab" data-tab="ta">🔍 Job Analysis</div>
+    </div>
+    <div class="tab-panel active" id="tr"><div id="rprev"></div></div>
+    <div class="tab-panel" id="tl"><textarea id="clt" rows="15" style="font-size:12.5px;line-height:1.8" readonly></textarea></div>
+    <div class="tab-panel" id="ta"><div id="aprev"></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:22px 0 14px">
+      <div class="secth">⬇️ Download Application</div>
+      <div id="page-badge" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(91,127,255,.12);border:1px solid rgba(91,127,255,.3);color:var(--accent)">2-page resume</div>
+    </div>
+    <div class="dlg">
+      <div class="dlb" id="dlpdf"><span class="dlbi">📄</span><div class="dlbn">Resume</div><div class="dlbt" id="dlpdf-sub">PDF · 2 pages</div></div>
+      <div class="dlb" id="dldocx"><span class="dlbi">📝</span><div class="dlbn">Resume</div><div class="dlbt">DOCX</div></div>
+      <div class="dlb" id="dlcl"><span class="dlbi">✉️</span><div class="dlbn">Cover Letter</div><div class="dlbt">PDF</div></div>
+    </div>
+    <div class="fc g8 mt16">
+      <button class="btn btn-g" id="new-btn">🔄 New Application</button>
+      <button class="btn btn-s" id="ats-btn">📊 Run ATS Check</button>
+    </div>
+  </div>
+</div>
+
+<!-- BATCH -->
+<div id="page-batch" class="page">
+  <div class="ph-title">📦 Batch Processing</div>
+  <div class="ph-sub">Apply to multiple jobs at once via CSV upload.</div>
+  <div id="bg" class="alert aw mb16 hidden"><span class="aicon">⚠️</span>Parse your resume on the Home page first.</div>
+  <div class="exp"><div class="exp-head" onclick="toggleExp(this)">📋 CSV Format &amp; Template <span class="exp-arr">▼</span></div>
+    <div class="exp-body">Required: <strong>company</strong>, <strong>position</strong>, <strong>description</strong> columns.<br><br>
+      <pre style="background:var(--panel);padding:10px;border-radius:8px;font-size:11px;overflow-x:auto">company,position,description
+Google,Software Engineer,"Python dev 3+ yrs..."
+Meta,Frontend Dev,"React specialist..."</pre>
+      <button class="btn btn-g mt8" onclick="dlCsvTpl()">📥 Download Template</button>
+    </div>
+  </div>
+  <div class="g2 mt12">
+    <div class="card">
+      <div class="card-title">📤 Upload CSV</div>
+      <div class="uz" id="cuz"><input type="file" id="ci" accept=".csv"/>
+        <span class="uicon">📊</span><div class="utxt"><strong>Click to upload CSV</strong><br>company, position, description required</div>
+      </div>
+      <div id="cbadge" class="fbadge hidden"><span style="font-size:18px">✅</span>
+        <div><div style="font-size:12px;font-weight:500" id="cfname">—</div><div style="font-size:10px;color:var(--muted)" id="cmeta">0 rows</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">⚙️ Settings</div>
+      <div class="fg"><label>Tone</label>
+        <select id="bt"><option value="professional">🎩 Professional</option><option value="enthusiastic">🌟 Enthusiastic</option><option value="concise">⚡ Concise</option><option value="creative">🎨 Creative</option></select>
+      </div>
+      <div class="fg"><label>Max Jobs</label><input type="number" id="bmax" value="10" min="1" max="100"/></div>
+      <button class="btn btn-p btn-full mt12" id="batch-btn" disabled>🚀 Process All Applications</button>
+    </div>
+  </div>
+  <div class="card mt16 hidden" id="bres">
+    <div class="card-title">📊 Results</div>
+    <div class="g4 mb20">
+      <div class="metric"><div class="ml">Total</div><div class="mv" id="brt">0</div></div>
+      <div class="metric"><div class="ml">Done</div><div class="mv gn" id="brok">0</div></div>
+      <div class="metric"><div class="ml">Failed</div><div class="mv rd" id="brfail">0</div></div>
+      <div class="metric"><div class="ml">Avg Score</div><div class="mv bl" id="bravg">—</div></div>
+    </div>
+    <div class="cw mb16"><canvas id="bchart"></canvas></div>
+    <div class="tw"><table><thead><tr><th>Company</th><th>Position</th><th>Before</th><th>After</th><th>+/-</th></tr></thead><tbody id="btbody"></tbody></table></div>
+    <button class="btn btn-p mt12" id="bdl">📦 Download ZIP</button>
+  </div>
+</div>
+
+<!-- EMAIL -->
+<div id="page-email" class="page">
+  <div class="ph-title">📧 Email Automation</div>
+  <div class="ph-sub">Send your application directly to hiring managers.</div>
+  <div id="eg" class="alert aw mb16 hidden"><span class="aicon">⚠️</span>Generate an application first.</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">🔐 Email Config</div>
+      <div class="fg"><label>Gmail Address</label><input type="email" id="efrom" placeholder="you@gmail.com"/></div>
+      <div class="fg"><label>App Password</label><input type="password" id="epass" placeholder="xxxx xxxx xxxx xxxx"/></div>
+      <div class="alert ai mt8"><span class="aicon">ℹ️</span><div>Use a Gmail App Password. <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--accent)">Generate →</a></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">✉️ Compose</div>
+      <div class="fg"><label>Recipient *</label><input type="email" id="eto" placeholder="hiring@company.com"/></div>
+      <div class="fg"><label>Company</label><input type="text" id="eco" placeholder="TechCorp Inc."/></div>
+      <div class="fg"><label>Position</label><input type="text" id="epos" placeholder="Senior Software Engineer"/></div>
+      <div class="fg"><label>Template</label><select id="etpl"><option value="professional">🎩 Professional</option><option value="enthusiastic">🌟 Enthusiastic</option><option value="concise">⚡ Concise</option></select></div>
+    </div>
+  </div>
+  <div class="card mt16">
+    <div class="g2 mb16"><div class="alert as"><span class="aicon">✅</span>Resume PDF auto-attached</div><div class="alert as"><span class="aicon">✅</span>Cover Letter PDF auto-attached</div></div>
+    <button class="btn btn-p btn-full btn-lg" id="send-btn">📤 Send Application Email</button>
+    <div id="eok" class="alert as mt12 hidden"><span class="aicon">🎉</span>Email sent!</div>
+    <div id="eerr" class="alert ae mt12 hidden"><span class="aicon">❌</span><span id="eerrt"></span></div>
+  </div>
+</div>
+
+<!-- ATS -->
+<div id="page-ats" class="page">
+  <div class="ph-title">📊 ATS Analyzer</div>
+  <div class="ph-sub">Check ATS compatibility and get improvements.</div>
+  <div id="atsg" class="alert aw mb16"><span class="aicon">⚠️</span>Generate an application first.</div>
+  <div id="atsc" class="hidden">
+    <div class="g4 mb18">
+      <div class="metric" style="align-items:center;padding:24px">
+        <div class="ml mb12">ATS Score</div>
+        <div class="ring">
+          <svg viewBox="0 0 110 110" width="110" height="110">
+            <circle cx="55" cy="55" r="46" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="11"/>
+            <circle cx="55" cy="55" r="46" fill="none" stroke="url(#gr2)" stroke-width="11" stroke-dasharray="289" stroke-dashoffset="289" stroke-linecap="round" id="atsarc"/>
+            <defs><linearGradient id="gr2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#ff6b6b"/><stop offset="100%" stop-color="#40e0a0"/></linearGradient></defs>
+          </svg>
+          <div class="ring-txt"><div class="ring-num" id="atsnum">0</div><div class="ring-lbl">/ 100</div></div>
+        </div>
+        <div class="badge bgg mt12" id="atsgr">—</div>
+      </div>
+      <div class="metric"><div class="ml">Keywords</div><div class="mv bl" id="atskw">—</div></div>
+      <div class="metric"><div class="ml">Format</div><div class="mv gn" id="atsfmt">—</div></div>
+      <div class="metric"><div class="ml">Issues</div><div class="mv rd" id="atsiss">—</div></div>
+    </div>
+    <div class="card mb18"><div class="card-title">Score Breakdown</div><div class="cw"><canvas id="atschart"></canvas></div></div>
+    <div class="tabs">
+      <div class="tab active" data-tab="atkw">🔑 Keywords</div>
+      <div class="tab" data-tab="atfmt">📋 Format</div>
+      <div class="tab" data-tab="atsk">🛠 Skills</div>
+      <div class="tab" data-tab="atrec">💡 Tips</div>
+    </div>
+    <div class="tab-panel active" id="atkw"><div class="g2" style="gap:16px"><div><div class="secth mb8">✅ Matched</div><div class="chips" id="atkwok"></div></div><div><div class="secth mb8">❌ Missing</div><div class="chips" id="atkwno"></div></div></div></div>
+    <div class="tab-panel" id="atfmt"><div class="g2" style="gap:16px"><div><div class="secth mb8">✅ Passed</div><div id="atfmtp"></div></div><div><div class="secth mb8">⚠️ Issues</div><div id="atfmti"></div></div></div></div>
+    <div class="tab-panel" id="atsk"><div class="g2" style="gap:16px"><div><div class="secth mb8">✅ Have</div><div class="chips" id="atskm"></div></div><div><div class="secth mb8">❌ Missing</div><div class="chips" id="atskno"></div></div></div></div>
+    <div class="tab-panel" id="atrec"><div id="atrecl"></div></div>
+  </div>
+</div>
+
+<!-- LINKEDIN -->
+<div id="page-linkedin" class="page">
+  <div class="ph-title">🤖 LinkedIn Auto-Apply Bot</div>
+  <div class="ph-sub">Automatically apply to LinkedIn Easy Apply jobs with AI-powered form filling.</div>
+  <div id="lig" class="alert ai mb16"><span class="aicon">ℹ️</span>Tip: Generate an application first to auto-attach your tailored resume. Or enter a resume path manually below.</div>
+
+  <!-- Row 1: Credentials + Search -->
+  <div class="g2 mb16">
+    <div class="card">
+      <div class="card-title">🔐 LinkedIn Credentials</div>
+      <div class="fg"><label>LinkedIn Email *</label><input type="email" id="lemail" placeholder="you@gmail.com"/></div>
+      <div class="fg"><label>LinkedIn Password *</label><input type="password" id="lpass" placeholder="••••••••"/></div>
+      <div class="alert aw mt8"><span class="aicon">🔒</span>Used locally only — never sent to any server.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔍 Job Search</div>
+      <div class="fg"><label>Keywords *</label><input type="text" id="lkw" value="Python Developer"/></div>
+      <div class="fg"><label>Location</label><input type="text" id="lloc" placeholder="Bangalore, Remote…"/></div>
+      <div class="g2" style="gap:12px">
+        <div class="fg"><label>Max Applications</label><input type="number" id="lmax" value="5" min="1" max="50"/></div>
+        <div class="fg"><label>Phone *</label><input type="text" id="lphone" placeholder="+91-9999999999"/></div>
+      </div>
+      <div class="fg"><label>Resume PDF Path <span class="muted sm">(auto-filled if app generated)</span></label><input type="text" id="lresume" placeholder="data/output/YourName_Company_Resume.pdf"/></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Profile Info (for auto-filling forms) -->
+  <div class="exp mb16" id="profileExp">
+    <div class="exp-head" onclick="toggleExp(this)" style="background:rgba(91,127,255,.07);border-color:rgba(91,127,255,.2)">
+      <div style="display:flex;align-items:center;gap:9px">
+        <span style="font-size:16px">👤</span>
+        <div>
+          <div style="font-weight:700;font-size:13px;color:var(--text)">Profile Info <span class="badge bg" style="margin-left:6px">Auto-fill forms</span></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:1px">Used to auto-fill LinkedIn application questions</div>
+        </div>
+      </div>
+      <span class="exp-arr">▼</span>
+    </div>
+    <div class="exp-body" style="background:var(--panel)">
+      <div class="g2" style="gap:14px">
+        <div>
+          <div class="fg"><label>First Name</label><input type="text" id="lfirst" placeholder="John"/></div>
+          <div class="fg"><label>Last Name</label><input type="text" id="llast" placeholder="Doe"/></div>
+          <div class="fg"><label>City / Location</label><input type="text" id="lcity" placeholder="Bangalore"/></div>
+          <div class="fg"><label>Current Job Title</label><input type="text" id="ltitle" placeholder="Software Engineer"/></div>
+        </div>
+        <div>
+          <div class="fg"><label>Years of Experience</label><input type="number" id="lyears" value="2" min="0" max="40"/></div>
+          <div class="fg"><label>LinkedIn Profile URL</label><input type="text" id="llinkedin" placeholder="https://linkedin.com/in/you"/></div>
+          <div class="fg"><label>GitHub URL <span class="muted sm">(optional)</span></label><input type="text" id="lgithub" placeholder="https://github.com/you"/></div>
+          <div class="fg"><label>Portfolio / Website <span class="muted sm">(optional)</span></label><input type="text" id="lportfolio" placeholder="https://yoursite.com"/></div>
+        </div>
+      </div>
+      <div class="g2" style="gap:14px;margin-top:4px">
+        <div class="fg"><label>Expected Salary (₹ LPA or 0 to skip)</label><input type="text" id="lsalary" value="0"/></div>
+        <div class="fg"><label>Notice Period (days)</label><input type="text" id="lnotice" value="30"/></div>
+      </div>
+      <div class="trow" style="padding:9px 0;margin-top:4px">
+        <div>
+          <div style="font-size:13px;font-weight:500">Authorized to work without visa sponsorship?</div>
+          <div style="font-size:11px;color:var(--muted)">Bot will answer Yes/No questions automatically</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="lauthorized" checked/><span class="tt"></span></label>
+      </div>
+      <div class="alert as mt8"><span class="aicon">✅</span>These details are only used locally to fill application forms — never stored or sent externally.</div>
+    </div>
+  </div>
+
+  <!-- Row 3: Auto-submit toggle -->
+  <div class="card mt4">
+    <div class="trow">
+      <div><div style="font-size:13px">Auto-Submit</div><div style="font-size:11px;color:var(--muted)">Bot submits without review — start OFF</div></div>
+      <label class="toggle"><input type="checkbox" id="lauto" onchange="onAT()"/><span class="tt"></span></label>
+    </div>
+    <div id="lautoW" class="alert ae mt10 hidden"><span class="aicon">⚠️</span>Auto-submit ON! Applications will be submitted automatically.</div>
+    <div id="lsafe" class="alert as mt10"><span class="aicon">✅</span>Safe mode — bot fills all forms but does NOT submit (you review).</div>
+  </div>
+
+  <!-- Start / Stop -->
+  <div class="card mt16"><div class="fc g8"><button class="btn btn-p btn-lg" style="flex:1" id="li-btn">🚀 Start LinkedIn Bot</button><button class="btn btn-d btn-lg hidden" id="li-stop-btn">⏹ Stop Bot</button></div></div>
+
+  <!-- Log -->
+  <div class="card mt16 hidden" id="llog">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div class="card-title" style="margin:0">📋 Bot Output</div>
+      <button class="btn btn-g sm" onclick="document.getElementById('blog').innerHTML=''">Clear</button>
+    </div>
+    <div class="blog" id="blog"></div>
+    <div class="g4 mt16">
+      <div class="metric"><div class="ml">Applied</div><div class="mv gn" id="la">0</div></div>
+      <div class="metric"><div class="ml">Skipped</div><div class="mv" id="ls2">0</div></div>
+      <div class="metric"><div class="ml">Errors</div><div class="mv rd" id="le2">0</div></div>
+      <div class="metric"><div class="ml">Time</div><div class="mv" id="lt2">0s</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page">
+  <div class="ph-title">📈 Dashboard</div><div class="ph-sub">Your application history and performance.</div>
+  <div class="g4 mb20">
+    <div class="metric"><div class="ml">Total</div><div class="mv" id="dt">0</div></div>
+    <div class="metric"><div class="ml">Avg Score</div><div class="mv gn" id="da">—</div></div>
+    <div class="metric"><div class="ml">Avg Improvement</div><div class="mv bl" id="di">—</div></div>
+    <div class="metric"><div class="ml">Best Match</div><div class="mv" id="db">—</div></div>
+  </div>
+  <div class="card mb20"><div class="card-title">📈 Match Score Trend</div><div class="cw"><canvas id="dchart"></canvas></div></div>
+  <div class="card">
+    <div class="card-title">📋 History</div>
+    <div id="demp" class="alert ai">No applications yet — go to Home!</div>
+    <div class="tw hidden" id="dtw"><table><thead><tr><th>Date</th><th>Company</th><th>Position</th><th>Score</th><th>Improvement</th></tr></thead><tbody id="dtbody"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ANALYTICS -->
+<div id="page-analytics" class="page">
+  <div class="ph-title">📉 Analytics</div><div class="ph-sub">Patterns across all your applications.</div>
+  <div id="anemp" class="alert ai mb16">No data yet.</div>
+  <div class="g2 mb16">
+    <div class="card"><div class="card-title">🏢 Companies</div><div class="cw"><canvas id="ancoc"></canvas></div></div>
+    <div class="card"><div class="card-title">📊 Score Distribution</div><div class="cw"><canvas id="andist"></canvas></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-title">🏆 Best Application</div><div id="anbest" class="alert ai">No data yet.</div></div>
+    <div class="card"><div class="card-title">📊 Performance</div><div id="anperf" class="alert as">No data yet.</div></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="page-settings" class="page">
+  <div class="ph-title">⚙️ Settings</div><div class="ph-sub">Configure AI model and manage data.</div>
+  <div class="sset">
+    <div class="sset-t">🤖 AI Model</div>
+    <div class="fg"><label>Ollama Model</label>
+      <select id="msel"><option>llama3.2</option><option>llama3.1</option><option>llama2</option><option>mistral</option><option>mixtral</option></select>
+    </div>
+    <div class="orow"><div class="odot" id="sdot"></div><span class="sm" id="stxt">Click Test to check</span></div>
+    <div class="fc g8">
+      <button class="btn btn-g" id="toll">🔌 Test Ollama</button>
+      <button class="btn btn-p" id="smod">💾 Save Model</button>
+    </div>
+  </div>
+  <div class="sset">
+    <div class="sset-t">🗑️ Data Management</div>
+    <div class="g2" style="gap:12px">
+      <button class="btn btn-g btn-full" id="clrh">Clear History</button>
+      <button class="btn btn-g btn-full" id="clrb">Clear Batch</button>
+    </div>
+    <button class="btn btn-d btn-full mt12" id="rall">🔄 Reset All Data</button>
+    <div id="smsg" class="alert as mt12 hidden"><span class="aicon">✅</span><span id="smsgt"></span></div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+const S={res:null,ja:null,tail:null,cl:null,sb:0,sa:0,hist:[],csv:null,tone:'professional',ats:null,charts:{},pages:2};
+
+async function api(m,p,b=null,f=false){
+  const o={method:m,credentials:'include'};
+  if(b){if(f)o.body=b;else{o.headers={'Content-Type':'application/json'};o.body=JSON.stringify(b);}}
+  const r=await fetch(p,o);const d=await r.json();
+  if(!d.success)throw new Error(d.error||'API error');
+  return d;
+}
+
+function gi(id){return document.getElementById(id)}
+function sh(id){const e=gi(id);if(e)e.classList.remove('hidden')}
+function hi(id){const e=gi(id);if(e)e.classList.add('hidden')}
+function st(id,t){const e=gi(id);if(e)e.textContent=t}
+function sh2(id,h){const e=gi(id);if(e)e.innerHTML=h}
+function toast(msg,type='info'){
+  const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;
+  gi('tc').appendChild(t);setTimeout(()=>t.remove(),3200);
+}
+function showL(t='Processing…',s='Please wait'){st('lt',t);st('ls',s);sh('lov')}
+function hideL(){hi('lov')}
+function grade(s){if(s>=90)return'A+ 🌟';if(s>=80)return'A 🎯';if(s>=70)return'B+ ✅';if(s>=60)return'B 👍';return'C ⚠️'}
+function avg(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0}
+function animN(id,f,t,d){
+  const e=gi(id);if(!e)return;const s=performance.now();
+  function step(n){const p=Math.min((n-s)/d,1);e.textContent=Math.round(f+(t-f)*p);if(p<1)requestAnimationFrame(step);}
+  requestAnimationFrame(step);
+}
+function mkChart(id,cfg){if(S.charts[id]){S.charts[id].destroy();delete S.charts[id];}const c=gi(id);if(!c)return;S.charts[id]=new Chart(c,cfg);}
+function chOpts(ex={}){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#6b7280',font:{size:11}}}},scales:{x:{ticks:{color:'#6b7280',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#6b7280',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'},...(ex.min!==undefined?{min:ex.min}:{}),...(ex.max!==undefined?{max:ex.max}:{})}}}}
+function toggleExp(h){h.closest('.exp').classList.toggle('open')}
+function scrl(id){const e=gi(id);if(e)setTimeout(()=>e.scrollIntoView({behavior:'smooth',block:'start'}),100)}
+
+// NAV
+document.querySelectorAll('.nav-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    gi('page-'+el.dataset.page).classList.add('active');
+    onNav(el.dataset.page);
+  });
+});
+function onNav(p){
+  if(p==='dashboard')renderDash();
+  if(p==='analytics')renderAn();
+  if(p==='ats')renderATS();
+  if(p==='email')gi('eg').classList.toggle('hidden',!!S.tail);
+  if(p==='batch')gi('bg').classList.toggle('hidden',!!S.res);
+  // linkedin gate is now info-only, always visible
+  if(p==='settings')loadSet();
+}
+
+// TABS
+document.addEventListener('click',e=>{
+  if(!e.target.classList.contains('tab'))return;
+  const id=e.target.dataset.tab;
+  const c=e.target.closest('.page,.card');if(!c)return;
+  c.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  e.target.classList.add('active');
+  c.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  const panel=gi(id);if(panel)panel.classList.add('active');
+});
+
+// TONE
+document.querySelectorAll('.to').forEach(o=>{
+  o.addEventListener('click',()=>{
+    document.querySelectorAll('.to').forEach(x=>x.classList.remove('sel'));
+    o.classList.add('sel');S.tone=o.dataset.tone;
+  });
+});
+
+// OLLAMA
+async function checkOll(){
+  try{
+    const d=await api('GET','/api/ollama/test');
+    const ok=d.ollama?.status==='online';
+    ['odot','sdot'].forEach(id=>{const e=gi(id);if(e)e.className='odot'+(ok?' ok':' fail');});
+    st('otxt',ok?'Ollama · Online':'Ollama · Offline');
+    st('stxt',ok?'✅ Online · '+(d.ollama.models?.join(', ')||''):'❌ Offline — run: ollama serve');
+    return ok;
+  }catch{return false;}
+}
+
+// UPLOAD
+const ri=gi('ri'),uz=gi('uz');
+ri.addEventListener('change',()=>{
+  const f=ri.files[0];if(!f)return;
+  uz.classList.add('has-file');st('fb-name',f.name);st('fb-meta',(f.size/1024).toFixed(1)+' KB');
+  sh('fbadge');gi('parse-btn').disabled=false;S._f=f;
+});
+['dragover','dragenter'].forEach(ev=>uz.addEventListener(ev,e=>{e.preventDefault();uz.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>uz.addEventListener(ev,()=>uz.classList.remove('drag')));
+uz.addEventListener('drop',e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f){ri.files=e.dataTransfer.files;ri.dispatchEvent(new Event('change'));}});
+
+// PARSE
+gi('parse-btn').addEventListener('click',async()=>{
+  const file=S._f;if(!file)return;
+  const btn=gi('parse-btn'),spin=gi('pspin');
+  btn.disabled=true;spin.classList.remove('hidden');
+  try{
+    const fd=new FormData();fd.append('file',file);
+    let d=await api('POST','/api/resume/upload',fd,true);
+    S.uf=d.filename;
+    d=await api('POST','/api/resume/parse',{filename:S.uf});
+    S.res=d.resume;
+    st('pr-name',d.name||'—');st('pr-jobs',d.jobs+' jobs');st('pr-skills',d.skills+' skills');
+    sh('parse-res');spin.classList.add('hidden');btn.textContent='✅ Resume Parsed';
+    stepD(1);
+    const s2=gi('s2-card');s2.style.opacity='1';s2.style.pointerEvents='auto';
+    gi('gen-btn').disabled=false;updSB();toast('Resume parsed!','success');
+  }catch(e){spin.classList.add('hidden');btn.disabled=false;btn.textContent='🔄 Parse Resume';toast('Failed: '+e.message,'error');}
+});
+
+// GENERATE
+gi('gen-btn').addEventListener('click',async()=>{
+  const desc=gi('jd').value.trim();if(!desc){toast('Paste job description first','warn');return;}
+  sh('gen-card');hi('res-card');hi('gerr');scrl('gen-card');
+  const steps=[{i:1,t:'Analyzing…',p:20},{i:2,t:'Scoring…',p:40},{i:3,t:'Tailoring…',p:60},{i:4,t:'Cover letter…',p:80},{i:5,t:'Packaging…',p:95}];
+  let si=0;
+  const tmr=setInterval(()=>{
+    if(si<steps.length){const s=steps[si];gsStep(s.i,'act');gi('gprog').style.width=s.p+'%';st('gpct',s.p+'%');st('gtxt',s.t);if(si>0)gsStep(steps[si-1].i,'done');si++;}
+  },900);
+  try{
+    const d=await api('POST','/api/generate',{description:desc,tone:S.tone,resume_pages:S.pages});
+    clearInterval(tmr);steps.forEach(s=>gsStep(s.i,'done'));
+    gi('gprog').style.width='100%';st('gpct','100%');st('gtxt','✅ Done!');
+    S.ja=d.job_analysis;S.tail=d.tailored_resume;S.cl=d.cover_letter;S.sb=d.score_before.overall_score;S.sa=d.score_after.overall_score;
+    if(d.resume_pages)S.pages=d.resume_pages;
+    try{const h=await api('GET','/api/history');if(h.history)S.hist=h.history;}catch{}
+    renderRes();stepD(2);stepD(3);stepD(4);updSB();toast('Application generated!','success');
+  }catch(e){clearInterval(tmr);st('gerrt',e.message);sh('gerr');toast('Failed: '+e.message,'error');}
+});
+
+function renderRes(){
+  const b=S.sb.toFixed(1),a=S.sa.toFixed(1),d=(S.sa-S.sb).toFixed(1);
+  st('r-b',b+'%');st('r-a',a+'%');st('r-i','+'+d+'%');st('r-g',grade(S.sa));
+  const arc=gi('sarc'),off=289-(S.sa/100)*289;
+  setTimeout(()=>{arc.style.transition='stroke-dashoffset 1s ease';arc.style.strokeDashoffset=off;},100);
+  animN('rnum',0,Math.round(S.sa),900);
+  const r=S.tail,info=r?.personal_info||{};
+  const _s=t=>String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  sh2('rprev',`<div style="font-family:var(--fh);font-size:19px;font-weight:800;margin-bottom:3px">${_s(info.full_name||'\u2014')}</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">${[info.email,info.phone,info.location].filter(Boolean).map(_s).join(' \u00b7 ')}</div>
+    ${r?.summary?`<div style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:14px">${_s(r.summary)}</div>`:''}
+    <div style="font-family:var(--fh);font-size:13px;font-weight:700;margin-bottom:9px;color:var(--accent)">EXPERIENCE</div>
+    ${(r?.experience||[]).slice(0,3).map(j=>`<div style="margin-bottom:12px"><div style="font-weight:600;font-size:12.5px">${_s(j.position||'')} <span style="color:var(--muted)">@ ${_s(j.company||'')}</span></div><div style="font-size:10.5px;color:var(--muted);margin-bottom:5px">${_s(j.start_date||'')} \u2013 ${_s(j.end_date||'')}</div>${(j.responsibilities||[]).slice(0,3).map(b=>`<div style="font-size:11.5px;color:var(--muted);padding-left:10px;border-left:2px solid var(--border);margin-bottom:2px">\u2022 ${_s(b)}</div>`).join('')}</div>`).join('')}
+    <div style="font-family:var(--fh);font-size:13px;font-weight:700;margin:12px 0 8px;color:var(--accent)">SKILLS</div>
+    <div class="chips">${Object.values(r?.skills||{}).flat().slice(0,15).map(s=>`<span class="chip cok">${_s(s)}</span>`).join('')}</div>
+    ${(r?.projects||[]).length?`<div style="font-family:var(--fh);font-size:13px;font-weight:700;margin:14px 0 8px;color:var(--accent)">PROJECTS</div>${(r.projects||[]).map(p=>`<div style="margin-bottom:10px;padding:10px;background:var(--panel);border-radius:8px;border:1px solid var(--border)"><div style="font-weight:700;font-size:12.5px;margin-bottom:4px">${_s(p.name||p.title||'Project')}</div>${(p.technologies||[]).length?`<div style="margin-bottom:5px">${(Array.isArray(p.technologies)?p.technologies:[p.technologies]).map(t=>`<span class="chip bg" style="margin-right:4px;margin-bottom:3px">${_s(t)}</span>`).join('')}</div>`:''}${p.description?`<div style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-bottom:5px">${_s(p.description)}</div>`:''}${(p.highlights||p.bullets||p.responsibilities||[]).slice(0,3).map(b=>`<div style="font-size:11px;color:var(--muted);padding-left:8px;border-left:2px solid var(--border);margin-bottom:2px">\u2022 ${_s(b)}</div>`).join('')}</div>`).join('')}`:''}`);
+  gi('clt').value=S.cl||'';
+  const ja=S.ja||{};
+  sh2('aprev',`<div class="g2 mb16" style="gap:12px"><div class="metric"><div class="ml">Company</div><div style="font-size:16px;font-weight:700;margin-top:4px">${ja.company||'—'}</div></div><div class="metric"><div class="ml">Role</div><div style="font-size:16px;font-weight:700;margin-top:4px">${ja.job_title||'—'}</div></div></div>
+    <div class="mb12"><div class="secth mb8">Required Skills</div><div class="chips">${(ja.required_skills||[]).map(s=>`<span class="chip cok">${s}</span>`).join('')}</div></div>`);
+  hi('gen-card');sh('res-card');scrl('res-card');
+  // Sync page badge + subtitle in download section
+  const pl=S.pages===1?'1-page resume':'2-page resume';
+  st('page-badge',pl);
+  st('dlpdf-sub','PDF \u00b7 '+S.pages+' page'+(S.pages>1?'s':''));
+}
+
+// DOWNLOADS
+async function dlFile(url,name,body=null){
+  try{showL('Generating…','');const opts={method:'POST',credentials:'include'};
+    if(body){opts.headers={'Content-Type':'application/json'};opts.body=JSON.stringify(body);}
+    const r=await fetch(url,opts);
+    if(!r.ok){const d=await r.json();throw new Error(d.error);}
+    const b=await r.blob();const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();toast('Downloaded!','success');
+  }catch(e){toast('Failed: '+e.message,'error');}finally{hideL();}
+}
+gi('dlpdf').addEventListener('click',()=>dlFile('/api/export/resume/pdf','resume.pdf',{resume_pages:S.pages}));
+gi('dldocx').addEventListener('click',()=>dlFile('/api/export/resume/docx','resume.docx'));
+gi('dlcl').addEventListener('click',()=>dlFile('/api/export/coverletter/pdf','cover_letter.pdf'));
+gi('new-btn').addEventListener('click',()=>{S.tail=null;S.cl=null;S.ja=null;S.sb=0;S.sa=0;hi('res-card');hi('gen-card');gi('jd').value='';gi('s2-card').style.opacity='.4';gi('s2-card').style.pointerEvents='none';resetSteps();window.scrollTo({top:0,behavior:'smooth'});});
+gi('ats-btn').addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));document.querySelector('[data-page="ats"]').classList.add('active');document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));gi('page-ats').classList.add('active');renderATS();});
+
+// STEPS
+function stepD(n){
+  const d=gi('sd'+n);if(d){d.classList.remove('cur');d.classList.add('done');}
+  const l=gi('sl'+n);if(l)l.classList.add('done');
+  const lb=gi('slab'+n);if(lb){lb.classList.remove('cur');lb.classList.add('done');}
+  const nd=gi('sd'+(n+1));if(nd){nd.classList.remove('done');nd.classList.add('cur');}
+  const nl=gi('slab'+(n+1));if(nl){nl.classList.remove('done');nl.classList.add('cur');}
+}
+function resetSteps(){[1,2,3,4].forEach(n=>{const d=gi('sd'+n);if(d)d.classList.remove('done','cur');const l=gi('sl'+n);if(l)l.classList.remove('done');const lb=gi('slab'+n);if(lb)lb.classList.remove('done','cur');});gi('sd1')?.classList.add('cur');gi('slab1')?.classList.add('cur');}
+function gsStep(id,s){const step=gi('gs'+id),dot=gi('gd'+id);if(step)step.className='gstep '+s;if(dot){dot.className='gd '+s;if(s==='act')dot.innerHTML='<div class="spin" style="width:14px;height:14px;border-top-color:var(--accent)"></div>';if(s==='done')dot.innerHTML='✓';if(s==='')dot.innerHTML='';}}
+
+// BATCH
+gi('ci').addEventListener('change',async()=>{
+  const f=gi('ci').files[0];if(!f)return;
+  const fd=new FormData();fd.append('file',f);
+  try{const d=await api('POST','/api/batch/upload',fd,true);S.csv=d.filename;st('cfname',d.filename);st('cmeta',d.rows+' rows');sh('cbadge');gi('cuz').classList.add('has-file');gi('batch-btn').disabled=false;toast(d.rows+' jobs loaded','success');}
+  catch(e){toast('CSV error: '+e.message,'error');}
+});
+gi('batch-btn').addEventListener('click',async()=>{
+  if(!S.csv)return;
+  try{showL('Batch Processing…','May take a few minutes');const d=await api('POST','/api/batch/process',{filename:S.csv,tone:gi('bt').value});hideL();renderBatch(d.summary);toast('Done! '+d.summary.successful+' apps generated.','success');}
+  catch(e){hideL();toast('Failed: '+e.message,'error');}
+});
+function renderBatch(s){sh('bres');st('brt',s.total);st('brok',s.successful);st('brfail',s.failed);
+  const a=s.results.length?(s.results.reduce((x,r)=>x+r.match_after,0)/s.results.length).toFixed(1)+'%':'—';st('bravg',a);
+  sh2('btbody',s.results.map(r=>`<tr><td>${r.company}</td><td>${r.position}</td><td>${r.match_before.toFixed(1)}%</td><td><strong>${r.match_after.toFixed(1)}%</strong></td><td><span class="badge bgg">+${r.improvement.toFixed(1)}%</span></td></tr>`).join(''));
+  mkChart('bchart',{type:'bar',data:{labels:s.results.map(r=>r.company),datasets:[{label:'Before',data:s.results.map(r=>r.match_before.toFixed(1)),backgroundColor:'rgba(255,107,107,.45)',borderColor:'#ff6b6b',borderWidth:1},{label:'After',data:s.results.map(r=>r.match_after.toFixed(1)),backgroundColor:'rgba(91,127,255,.55)',borderColor:'#5b7fff',borderWidth:1}]},options:chOpts({max:100})});
+}
+gi('bdl').addEventListener('click',async()=>{try{showL('Preparing ZIP…','');const r=await fetch('/api/batch/download',{credentials:'include'});if(!r.ok){const d=await r.json();throw new Error(d.error);}const b=await r.blob();const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='batch.zip';a.click();toast('ZIP downloaded','success');}catch(e){toast(e.message,'error');}finally{hideL();}});
+
+// EMAIL
+gi('send-btn').addEventListener('click',async()=>{
+  const to=gi('eto').value.trim();if(!to){toast('Enter recipient email','warn');return;}
+  const btn=gi('send-btn');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Sending…';
+  hi('eok');hi('eerr');
+  try{await api('POST','/api/email/send',{recipient_email:to,company:gi('eco').value,position:gi('epos').value,template:gi('etpl').value,sender_email:gi('efrom').value,sender_password:gi('epass').value});sh('eok');toast('Email sent!','success');}
+  catch(e){st('eerrt',e.message);sh('eerr');toast('Failed: '+e.message,'error');}
+  finally{btn.disabled=false;btn.textContent='📤 Send Application Email';}
+});
+
+// ATS
+async function renderATS(){
+  if(!S.tail)return;hi('atsg');sh('atsc');
+  if(S.ats){renderATSd(S.ats);return;}
+  showL('Running ATS…','');
+  try{const d=await api('POST','/api/ats/analyze');hideL();S.ats=d.ats;renderATSd(d.ats);}
+  catch(e){hideL();toast('ATS failed: '+e.message,'error');}
+}
+function renderATSd(a){
+  animN('atsnum',0,Math.round(a.overall_score),900);
+  const arc=gi('atsarc');setTimeout(()=>{arc.style.transition='stroke-dashoffset 1s ease';arc.style.strokeDashoffset=289-(a.overall_score/100)*289;},100);
+  st('atsgr','Grade '+a.grade);st('atskw',a.keyword_details.match_rate.toFixed(0)+'%');st('atsfmt',a.format_score.toFixed(0));st('atsiss',a.recommendations.length);
+  mkChart('atschart',{type:'bar',data:{labels:['Keywords (40)','Format (20)','Content (20)','Skills (20)'],datasets:[{data:[a.keyword_score,a.format_score,a.content_score,a.skills_score],backgroundColor:['rgba(91,127,255,.55)','rgba(64,224,160,.55)','rgba(255,180,67,.55)','rgba(255,107,107,.55)'],borderColor:['#5b7fff','#40e0a0','#ffb443','#ff6b6b'],borderWidth:1}]},options:{...chOpts({max:40}),indexAxis:'y',plugins:{legend:{display:false}}}});
+  const kd=a.keyword_details;
+  sh2('atkwok',(kd.matched||[]).slice(0,12).map(k=>`<span class="chip cok">${k}</span>`).join(''));
+  sh2('atkwno',(kd.missing||[]).slice(0,12).map(k=>`<span class="chip cno">${k}</span>`).join(''));
+  const fd=a.format_details;
+  sh2('atfmtp',(fd.checks||[]).map(c=>`<div class="alert as mb8"><span class="aicon">✅</span>${c}</div>`).join(''));
+  sh2('atfmti',(fd.issues||[]).map(i=>`<div class="alert aw mb8"><span class="aicon">⚠️</span>${i}</div>`).join('')||'<div class="alert as"><span class="aicon">✅</span>No issues!</div>');
+  const sd=a.skills_details;
+  sh2('atskm',(sd.matched_required||[]).map(s=>`<span class="chip cok">${s}</span>`).join(''));
+  sh2('atskno',(sd.missing_required||[]).map(s=>`<span class="chip cno">${s}</span>`).join(''));
+  sh2('atrecl',(a.recommendations||[]).map(r=>`<div class="alert ai mb8"><span class="aicon">💡</span>${r}</div>`).join('')||'<div class="alert as"><span class="aicon">✅</span>Looking great!</div>');
+}
+
+// LINKEDIN
+function selectPages(n){
+  S.pages=n;
+  [1,2].forEach(i=>{
+    const el=gi('pg'+i);
+    if(el) el.classList.toggle('sel',i===n);
+  });
+  // also update badge/subtitle if results card is visible
+  const pl=n===1?'1-page resume':'2-page resume';
+  st('page-badge',pl);
+  st('dlpdf-sub','PDF \u00b7 '+n+' page'+(n>1?'s':''));
+}
+function onAT(){const on=gi('lauto').checked;gi('lautoW').classList.toggle('hidden',!on);gi('lsafe').classList.toggle('hidden',on);}
+// ── LinkedIn Bot — with live polling ────────────────────────────────────────
+let _liPollTimer   = null;   // setInterval handle for status polling
+let _liTimerHandle = null;   // setInterval handle for elapsed-time display
+let _liSeenLines   = 0;      // how many log lines we've already shown
+let _liStartTime   = 0;      // for timer display
+
+function _liLog(line, cls) {
+  const log = gi('blog');
+  const d   = document.createElement('div');
+  d.className = cls || 'li';
+  d.textContent = '[' + new Date().toLocaleTimeString() + '] ' + line;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+}
+
+function _liLineClass(line) {
+  if (line.includes('✅') || line.includes('[OK]') || line.includes('Applied!') || line.includes('submitted') || line.includes('SUCCESS') || line.includes('SAFE')) return 'lok';
+  if (line.includes('⚠️') || line.includes('[SKIP]') || line.includes('[WARN]') || line.includes('Skipped') || line.includes('WARN')) return 'lw';
+  if (line.includes('❌') || line.includes('[ERROR]') || line.includes('Error') || line.includes('ERROR') || line.includes('failed')) return 'le';
+  return 'li';
+}
+
+function _liStartPolling() {
+  if (_liPollTimer) clearInterval(_liPollTimer);
+  _liSeenLines = 0;
+
+  _liPollTimer = setInterval(async () => {
+    try {
+      const res = await fetch('/api/linkedin/status', { credentials: 'include' });
+      const d   = await res.json();
+
+      if (!d.success) return;
+
+      // Append only new lines
+      const lines = d.output || [];
+      for (let i = _liSeenLines; i < lines.length; i++) {
+        const line = lines[i];
+        _liLog(line, _liLineClass(line));
+        // Update applied counter from log lines
+        if (line.includes('Applied!') || line.includes('[SAFE]') || line.includes('submitted')) {
+          const m = line.match(/Total:\s*(\d+)/);
+          if (m) st('la', m[1]);
+          else {
+            const cur = parseInt(gi('la').textContent) || 0;
+            st('la', cur + 1);
+          }
+        }
+        if (line.includes('Skipped') || line.includes('[SKIP]')) {
+          const m = line.match(/Total skipped:\s*(\d+)/);
+          if (m) st('ls2', m[1]);
+          else {
+            const cur = parseInt(gi('ls2').textContent) || 0;
+            st('ls2', cur + 1);
+          }
+        }
+        if (line.includes('❌') || line.includes('[ERROR]') || line.includes('Error')) {
+          const cur = parseInt(gi('le2').textContent) || 0;
+          st('le2', cur + 1);
+        }
+      }
+      _liSeenLines = lines.length;
+
+      // Stop polling when finished
+      if (!d.running && d.status === 'finished' && _liSeenLines > 0) {
+        clearInterval(_liPollTimer);
+        _liPollTimer = null;
+        clearInterval(_liTimerHandle);  // stop elapsed timer
+        _liLog('✅ Bot finished.', 'lok');
+        toast('LinkedIn bot finished!', 'success');
+        gi('li-btn').disabled = false;
+        gi('li-btn').textContent = '🚀 Start LinkedIn Bot';
+        gi('li-stop-btn').classList.add('hidden');
+      }
+    } catch (e) {
+      // Network error — keep polling
+    }
+  }, 2000);  // poll every 2 seconds
+}
+
+// Stop bot
+gi('li-stop-btn').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/linkedin/stop', { method: 'POST', credentials: 'include' });
+    const d = await res.json();
+    if (d.success) {
+      _liLog('⏹ Bot stopped by user.', 'lw');
+      toast('Bot stopped', 'warn');
+    } else {
+      _liLog('⚠️ Stop failed: ' + d.error, 'lw');
+      toast('Stop failed: ' + d.error, 'error');
+    }
+  } catch (e) {
+    _liLog('❌ Network error stopping bot: ' + e.message, 'le');
+  }
+  if (_liPollTimer) { clearInterval(_liPollTimer); _liPollTimer = null; }
+  gi('li-btn').disabled = false;
+  gi('li-btn').textContent = '🚀 Start LinkedIn Bot';
+  gi('li-stop-btn').classList.add('hidden');
+});
+
+gi('li-btn').addEventListener('click', async () => {
+  const email = gi('lemail').value.trim();
+  const pass  = gi('lpass').value.trim();
+  const kw    = gi('lkw').value.trim();
+  const phone = gi('lphone').value.trim();
+  if (!email || !pass || !kw || !phone) { toast('Fill in Email, Password, Keywords and Phone', 'warn'); return; }
+
+  // Reset log UI
+  sh('llog');
+  gi('blog').innerHTML = '';
+  st('la', '0'); st('ls2', '0'); st('le2', '0');
+
+  // Start timer display
+  _liStartTime = Date.now();
+  if (_liTimerHandle) clearInterval(_liTimerHandle);
+  _liTimerHandle = setInterval(() => {
+    st('lt2', Math.floor((Date.now() - _liStartTime) / 1000) + 's');
+  }, 1000);
+
+  const btn = gi('li-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Starting bot…';
+
+  _liLog('🚀 Launching LinkedIn bot…', 'li');
+
+  // Build payload
+  const resumePathInput = gi('lresume');
+  const payload = {
+    email,
+    password:         pass,
+    keywords:         kw,
+    phone,
+    location:         gi('lloc').value,
+    max_applications: parseInt(gi('lmax').value) || 5,
+    auto_submit:      gi('lauto').checked,
+    // Profile info for auto-filling forms
+    first_name:       (gi('lfirst')     ? gi('lfirst').value.trim()     : ''),
+    last_name:        (gi('llast')      ? gi('llast').value.trim()      : ''),
+    full_name:        ((gi('lfirst') ? gi('lfirst').value.trim() : '') + ' ' + (gi('llast') ? gi('llast').value.trim() : '')).trim(),
+    city:             (gi('lcity')      ? gi('lcity').value.trim()      : ''),
+    current_title:    (gi('ltitle')     ? gi('ltitle').value.trim()     : ''),
+    years_experience: parseInt(gi('lyears') ? gi('lyears').value : '2') || 2,
+    linkedin_url:     (gi('llinkedin')  ? gi('llinkedin').value.trim()  : ''),
+    github_url:       (gi('lgithub')    ? gi('lgithub').value.trim()    : ''),
+    portfolio_url:    (gi('lportfolio') ? gi('lportfolio').value.trim() : ''),
+    salary_expected:  (gi('lsalary')    ? gi('lsalary').value.trim()    : '0'),
+    notice_period:    (gi('lnotice')    ? gi('lnotice').value.trim()    : '30'),
+    authorized:       (gi('lauthorized') && gi('lauthorized').checked) ? 'Yes' : 'No',
+    requires_visa:    (gi('lauthorized') && gi('lauthorized').checked) ? 'No' : 'Yes',
+  };
+  if (resumePathInput && resumePathInput.value.trim()) {
+    payload.resume_path = resumePathInput.value.trim();
+  }
+
+  try {
+    // Use raw fetch so we can see the actual error body even when success=false
+    const res = await fetch('/api/linkedin/start', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const d = await res.json();
+
+    if (!d.success) {
+      // Show the full error message from server
+      clearInterval(_liTimerHandle);
+      _liLog('❌ Server error: ' + d.error, 'le');
+      toast('Bot error: ' + d.error, 'error');
+      btn.disabled = false;
+      btn.textContent = '🚀 Start LinkedIn Bot';
+      gi('li-stop-btn').classList.add('hidden');
+      return;
+    }
+
+    // Success — show initial lines and start polling
+    (d.output || []).forEach(line => _liLog(line, _liLineClass(line)));
+    _liLog('📡 Bot running in background — log updates every 2s…', 'li');
+    _liStartPolling();
+    btn.textContent = '⏸ Bot Running…';
+    gi('li-stop-btn').classList.remove('hidden');
+
+  } catch (e) {
+    clearInterval(_liTimerHandle);
+    clearInterval(_liPollTimer);
+    _liLog('❌ Network error: ' + e.message, 'le');
+    toast('Network error: ' + e.message, 'error');
+    btn.disabled = false;
+    btn.textContent = '🚀 Start LinkedIn Bot';
+    gi('li-stop-btn').classList.add('hidden');
+  }
+});
+
+// DASHBOARD
+async function renderDash(){
+  try{const d=await api('GET','/api/history');if(d.history)S.hist=d.history;}catch{}
+  const h=S.hist;st('dt',h.length);
+  if(!h.length){sh('demp');hi('dtw');return;}
+  hi('demp');sh('dtw');
+  st('da',avg(h.map(e=>e.match_score)).toFixed(1)+'%');
+  st('di','+'+avg(h.map(e=>e.improvement)).toFixed(1)+'%');
+  st('db',Math.max(...h.map(e=>e.match_score)).toFixed(1)+'%');
+  sh2('dtbody',h.slice().reverse().map(e=>`<tr><td class="muted sm">${e.date}</td><td>${e.company}</td><td>${e.position}</td><td><strong>${e.match_score.toFixed(1)}%</strong></td><td><span class="badge bgg">+${e.improvement.toFixed(1)}%</span></td></tr>`).join(''));
+  mkChart('dchart',{type:'line',data:{labels:h.map((_,i)=>'#'+(i+1)),datasets:[{label:'Match %',data:h.map(e=>e.match_score.toFixed(1)),borderColor:'#5b7fff',backgroundColor:'rgba(91,127,255,.1)',tension:.4,pointBackgroundColor:'#5b7fff',fill:true}]},options:{...chOpts({min:0,max:100}),plugins:{legend:{display:false}}}});
+}
+
+// ANALYTICS
+function renderAn(){
+  const h=S.hist;const e=gi('anemp');
+  if(!h.length){e.classList.remove('hidden');return;}e.classList.add('hidden');
+  const co={};h.forEach(x=>co[x.company]=(co[x.company]||0)+1);
+  mkChart('ancoc',{type:'bar',data:{labels:Object.keys(co),datasets:[{data:Object.values(co),backgroundColor:'rgba(91,127,255,.5)',borderColor:'#5b7fff',borderWidth:1}]},options:{...chOpts(),plugins:{legend:{display:false}}}});
+  const bk=[0,0,0,0,0];h.forEach(x=>{if(x.match_score<50)bk[0]++;else if(x.match_score<65)bk[1]++;else if(x.match_score<75)bk[2]++;else if(x.match_score<85)bk[3]++;else bk[4]++;});
+  mkChart('andist',{type:'bar',data:{labels:['<50%','50-65%','65-75%','75-85%','85%+'],datasets:[{data:bk,backgroundColor:['rgba(255,107,107,.5)','rgba(255,180,67,.5)','rgba(91,127,255,.5)','rgba(64,224,160,.5)','rgba(64,224,160,.7)'],borderWidth:0}]},options:{...chOpts(),plugins:{legend:{display:false}}}});
+  const best=h.reduce((b,x)=>x.match_score>b.match_score?x:b,h[0]);
+  sh2('anbest',`<span class="aicon">🏆</span><div><strong>${best.company}</strong> — ${best.position}<br>${best.match_score.toFixed(1)}% · ${best.date}</div>`);
+  const a=avg(h.map(x=>x.match_score)),ai=avg(h.map(x=>x.improvement));
+  sh2('anperf',`<span class="aicon">📊</span><div>Avg: <strong>${a.toFixed(1)}%</strong> · Improvement: <strong>+${ai.toFixed(1)}%</strong> · Total: <strong>${h.length}</strong></div>`);
+}
+
+// SETTINGS
+async function loadSet(){try{const d=await api('GET','/api/settings');if(d.model)gi('msel').value=d.model;}catch{}}
+gi('toll').addEventListener('click',async()=>{const btn=gi('toll');btn.disabled=true;btn.textContent='Testing…';const ok=await checkOll();btn.disabled=false;btn.textContent='🔌 Test Ollama';toast(ok?'✅ Ollama online!':'❌ Offline',ok?'success':'error');});
+gi('smod').addEventListener('click',async()=>{const m=gi('msel').value;await api('POST','/api/settings',{model:m});st('tb-model','Ollama · '+m);showSM('Model saved!');toast('Updated to '+m,'success');});
+gi('clrh').addEventListener('click',async()=>{await api('POST','/api/session/clear',{keys:['history']});S.hist=[];updSB();showSM('History cleared!');});
+gi('clrb').addEventListener('click',async()=>{await api('POST','/api/session/clear',{keys:['batch_zip']});showSM('Batch cleared!');});
+gi('rall').addEventListener('click',async()=>{if(!confirm('Reset ALL data?'))return;await api('POST','/api/session/clear',{});S.res=null;S.tail=null;S.cl=null;S.ja=null;S.hist=[];S.ats=null;updSB();showSM('All reset!');toast('Cleared','warn');});
+function showSM(msg){const e=gi('smsg');st('smsgt',msg);e.classList.remove('hidden');setTimeout(()=>e.classList.add('hidden'),3000);}
+
+// SIDEBAR
+function updSB(){const h=S.hist;st('sb-apps',h.length);if(h.length){st('sb-best',Math.max(...h.map(e=>e.match_score)).toFixed(1)+'%');st('sb-avg',avg(h.map(e=>e.match_score)).toFixed(1)+'%');}}
+
+// CSV TEMPLATE
+function dlCsvTpl(){const csv=`company,position,description\nGoogle,Software Engineer,"Python dev 3+ years"\nMeta,Frontend Dev,"React specialist"\nStripe,Backend Engineer,"API and distributed systems"`;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='batch_jobs.csv';a.click();}
+
+// INIT
+(async function(){
+  await checkOll();
+  try{const d=await api('GET','/api/history');if(d.history&&d.history.length){S.hist=d.history;updSB();}}catch{}
+})();
+</script>
+</body>
+</html>

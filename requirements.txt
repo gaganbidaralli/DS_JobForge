@@ -1,0 +1,29 @@
+# ── Web framework ──────────────────────
+flask==3.0.0
+flask-cors==4.0.0
+werkzeug==3.0.1
+
+# ── Environment & config ────────────────
+python-dotenv==1.0.0
+
+# ── PDF processing ──────────────────────
+PyPDF2==3.0.1
+pdfplumber==0.10.3
+reportlab==4.0.7
+
+# ── DOCX processing ─────────────────────
+python-docx==1.1.0
+
+# ── HTTP client (Ollama) ─────────────────
+requests==2.31.0
+
+# ── Web scraping (optional) ──────────────
+beautifulsoup4==4.12.2
+lxml
+
+# ── LinkedIn bot (optional) ──────────────
+playwright>=1.40.0
+
+# ── Data (optional, for analytics) ───────
+pandas
+numpy
